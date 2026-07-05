@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Netflix-Style Experience</title>
+<style>
+  :root {
+    --netflix-red: #E50914;
+    --netflix-black: #141414;
+    --netflix-dark-gray: #181818;
+    --netflix-gray: #2a2a2a;
+    --netflix-light-gray: #b3b3b3;
+    --text-white: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background-color: var(--netflix-black);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: var(--text-white);
+    overflow-x: hidden;
+  }
+
+  /* ---------- SCREEN BASE ---------- */
+  .screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.7s ease-in-out, visibility 0.7s ease-in-out;
+  }
+
+  .screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* ---------- PROFILE SCREEN ---------- */
+  #profile-screen {
+    background: radial-gradient(ellipse at center, #1a1a1a 0%, var(--netflix-black) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 10;
+  }
+
+  .profile-heading {
+    font-size: 3rem;
+    font-weight: 500;
+    margin-bottom: 3rem;
+    letter-spacing: 1px;
+  }
+
+  .profile-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+
+  .profile-card:hover {
+    transform: scale(1.08);
+  }
+
+  .profile-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 3px solid transparent;
+    transition: border 0.2s ease;
+    background-color: var(--netflix-gray);
+  }
+
+  .profile-card:hover .profile-avatar {
+    border: 3px solid var(--text-white);
+  }
+
+  .profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .profile-name {
+    margin-top: 1rem;
+    font-size: 1.2rem;
+    color: var(--netflix-light-gray);
+    transition: color 0.2s ease;
+  }
+
+  .profile-card:hover .profile-name {
+    color: var(--text-white);
+  }
+
+  /* ---------- MOVIE SCREEN ---------- */
+  #movie-screen {
+    background-color: var(--netflix-black);
+    z-index: 5;
+    overflow-y: auto;
+    height: 100vh;
+  }
+
+  .hero-container {
+    position: relative;
+    width: 100%;
+    height: 85vh;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .hero-bg-media {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    z-index: 1;
+  }
+
+  .hero-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(
+      to top,
+      rgba(20,20,20,1) 0%,
+      rgba(20,20,20,0.8) 20%,
+      rgba(20,20,20,0.2) 60%,
+      rgba(20,20,20,0.6) 100%
+    );
+    z-index: 2;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: flex-end;
+    gap: 2.5rem;
+    padding: 0 5% 4% 5%;
+    width: 100%;
+  }
+
+  .poster-thumb {
+    width: 160px;
+    min-width: 130px;
+    border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+
+  .movie-info-block {
+    max-width: 650px;
+  }
+
+  .movie-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+    letter-spacing: 1px;
+  }
+
+  .movie-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    color: #d2d2d2;
+  }
+
+  .movie-rating-badge {
+    border: 1px solid var(--netflix-light-gray);
+    padding: 0.1rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.85rem;
+  }
+
+  .movie-description {
+    font-size: 1.05rem;
+    line-height: 1.4;
+    color: #eeeeee;
+    margin-bottom: 1.8rem;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.8rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+  }
+
+  .btn-play {
+    background-color: var(--text-white);
+    color: var(--netflix-black);
+  }
+
+  .btn-play:hover {
+    background-color: rgba(255,255,255,0.75);
+  }
+
+  .btn-info {
+    background-color: rgba(109, 109, 110, 0.7);
+    color: var(--text-white);
+  }
+
+  .btn-info:hover {
+    background-color: rgba(109, 109, 110, 0.5);
+  }
+
+  .brand-mark {
+    position: fixed;
+    top: 2rem;
+    left: 3%;
+    color: var(--netflix-red);
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    z-index: 20;
+    user-select: none;
+  }
+
+  /* ---------- MEMORIES ROW SECTION ---------- */
+  .thumbnails-section {
+    padding: 2rem 5% 5rem 5%;
+    background-color: var(--netflix-black);
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.2rem;
+    color: #e5e5e5;
+    letter-spacing: 0.5px;
+  }
+
+  .thumbnails-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .memory-card {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background-color: var(--netflix-gray);
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s ease;
+  }
+
+  .memory-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.7);
+    z-index: 4;
+  }
+
+  .memory-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .memory-info-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+    padding: 1.5rem 1rem 0.8rem 1rem;
+    color: var(--text-white);
+  }
+
+  .memory-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+  }
+
+  .memory-subtitle {
+    font-size: 0.85rem;
+    color: var(--netflix-light-gray);
+  }
+
+  /* ---------- MODAL WINDOW OVERLAYS ---------- */
+  .player-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+  }
+
+  .player-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    width: 45px;
+    height: 45px;
+    background-color: rgba(0,0,0,0.6);
+    border: 2px solid var(--text-white);
+    border-radius: 50%;
+    color: var(--text-white);
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 101;
+    transition: background-color 0.2s ease;
+  }
+
+  .close-btn:hover {
+    background-color: var(--netflix-red);
+  }
+
+  #video-player-overlay video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  /* Memory Showcase Frame Setup */
+  .showcase-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 800px;
+    width: 90%;
+    text-align: center;
+  }
+
+  .showcase-img {
+    width: 100%;
+    max-height: 65vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    margin-bottom: 1.5rem;
+  }
+
+  .showcase-caption {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .showcase-subcaption {
+    font-size: 1rem;
+    color: var(--netflix-light-gray);
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 900px) {
+    .thumbnails-container { grid-template-columns: 1fr; gap: 1.2rem; }
+    .hero-container { height: auto; min-height: 100vh; }
+    .hero-content { flex-direction: column; align-items: flex-start; padding-top: 7rem; }
+    .movie-title { font-size: 2rem; }
+    .movie-description { font-size: 0.95rem; }
+    .profile-heading { font-size: 2rem; }
+    .profile-avatar { width: 110px; height: 110px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="brand-mark">NETFLIX</div>
+
+<!-- ============ SCREEN 1: PROFILE SELECTION ============ -->
+<section id="profile-screen" class="screen">
+  <h1 class="profile-heading">Who's Watching?</h1>
+  <div class="profile-card" id="profile-card">
+    <div class="profile-avatar">
+      <img id="profile-img" src="" alt="Profile Picture">
+    </div>
+    <div class="profile-name" id="profile-name-label"></div>
+  </div>
+</section>
+
+<!-- ============ SCREEN 2: MOVIE INTRO & CONTENT ============ -->
+<section id="movie-screen" class="screen hidden">
+  <div class="hero-container">
+    <img id="hero-image" class="hero-bg-media" src="" alt="Movie Background">
+    <div class="hero-overlay"></div>
+
+    <div class="hero-content">
+      <img id="poster-thumb" class="poster-thumb" src="" alt="Movie Poster">
+
+      <div class="movie-info-block">
+        <h2 class="movie-title" id="movie-title"></h2>
+        <div class="movie-meta">
+          <span id="movie-year"></span>
+          <span class="movie-rating-badge" id="movie-rating"></span>
+        </div>
+        <p class="movie-description" id="movie-description"></p>
+
+        <div class="btn-row">
+          <button class="btn btn-play" id="play-btn">&#9654; Play</button>
+          <button class="btn btn-info" id="info-btn">&#8505; More Info</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEMORIES ROW SECTION -->
+  <div class="thumbnails-section">
+    <h3 class="section-title">Memories & Soundtracks</h3>
+    <div class="thumbnails-container">
+      
+      <!-- Thumbnail 1 -->
+      <div class="memory-card" onclick="openMemory(0)">
+        <img id="thumb-img-0" src="" alt="Memory 1">
+        <div class="memory-info-overlay">
+          <div class="memory-title" id="thumb-title-0"></div>
+          <div class="memory-subtitle" id="thumb-sub-0"></div>
+        </div>
+      </div>
+
+      <!-- Thumbnail 2 -->
+      <div class="memory-card" onclick="openMemory(1)">
+        <img id="thumb-img-1" src="" alt="Memory 2">
+        <div class="memory-info-overlay">
+          <div class="memory-title" id="thumb-title-1"></div>
+          <div class="memory-subtitle" id="thumb-sub-1"></div>
+        </div>
+      </div>
+
+      <!-- Thumbnail 3 -->
+      <div class="memory-card" onclick="openMemory(2)">
+        <img id="thumb-img-2" src="" alt="Memory 3">
+        <div class="memory-info-overlay">
+          <div class="memory-title" id="thumb-title-2"></div>
+          <div class="memory-subtitle" id="thumb-sub-2"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCREEN 3: VIDEO PLAYER OVERLAY ============ -->
+<div id="video-player-overlay" class="player-overlay">
+  <button class="close-btn" id="video-close-btn">&times;</button>
+  <video id="player-video" controls></video>
+</div>
+
+<!-- ============ SCREEN 4: IMAGE + MUSIC SHOWCASE OVERLAY ============ -->
+<div id="memory-player-overlay" class="player-overlay">
+  <button class="close-btn" id="memory-close-btn">&times;</button>
+  <div class="showcase-content">
+    <img id="showcase-img" class="showcase-img" src="" alt="Showcase Memory">
+    <div class="showcase-caption" id="showcase-caption"></div>
+    <div class="showcase-subcaption" id="showcase-subcaption"></div>
+  </div>
+  <audio id="memory-audio"></audio>
+</div>
+
+<script>
+  /* ==========================================================
+     PASSWORD DOOR CHECK (Runs immediately when page mounts)
+     ========================================================== */
+  function runPasswordGuard() {
+    const userInput = prompt("Enter the secret code to watch:");
+    if (userInput !== "mehak2003") {
+      alert("Access Denied! Incorrect code.");
+      document.body.innerHTML = `
+        <div style="background-color:#141414; color:#E50914; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; text-align:center; padding: 20px;">
+          <h1 style="font-size:3rem; margin-bottom:1rem;">🔴 LOCKED</h1>
+          <p style="color:#fff; font-size:1.2rem;">This page is protected. Please refresh and enter the correct key.</p>
+        </div>
+      `;
+      throw new Error("Application halted: Invalid credential validation.");
+    }
+  }
+  
+  // Fire authentication check
+  runPasswordGuard();
+
+  /* ==========================================================
+     CONFIGURATION BLOCK
+     ========================================================== */
+  const CONFIG = {
+    profileName: "Mehak",
+    profileImage: "icon.png", 
+
+    movieTitle: "MEHAK: THROUGH MY EYES", 
+    movieYear: "2003",
+    movieRating: "U/A",
+    movieDescription: "The best films aren't made with the biggest budgets; they're made with honesty. Through my eyes, she is effortlessly beautiful, wonderfully real, and completely unforgettable.",
+
+    heroBackgroundImageUrl: "gemni.png", 
+    moviePosterUrl: "widescreen_background.jpg", 
+    
+    playVideoUrl: "video.mp4",
+
+    memories: [
+      {
+        title: "MULAQAT",
+        subtitle: "Song: ajeeb dastan hai yeh",
+        imageUrl: "thumbnail1.png",  
+        audioUrl: "audio1.mp3",
+        mediaType: "image", 
+        mediaUrl: "canva1.png" 
+      },
+      {
+        title: "THE GETAWAY",
+        subtitle: "Song: Abhi na jao chod kar",
+        imageUrl: "thumbnail2.png",  
+        audioUrl: "audio2.mp3",
+        mediaType: "image", 
+        mediaUrl: "canva2.png" // Replace with your high-res image filename
+      },
+      {
+        title: "THE FINAL CUT",
+        subtitle: "Song: Happy birthday",
+        imageUrl: "thumbnail3.png",  
+        audioUrl: "audio3.mp3",
+      mediaType: "image", 
+        mediaUrl: "canva3.png" // Replace with your high-res image filename
+      }
+    ]
+  };
+
+  /* ==========================================================
+     DOM REFERENCES
+     ========================================================== */
+  const profileScreen       = document.getElementById('profile-screen');
+  const movieScreen         = document.getElementById('movie-screen');
+  const profileCard         = document.getElementById('profile-card');
+  const profileImg          = document.getElementById('profile-img');
+  const profileNameLbl      = document.getElementById('profile-name-label');
+
+  const heroImage           = document.getElementById('hero-image');
+  const posterThumb         = document.getElementById('poster-thumb');
+  const movieTitleEl        = document.getElementById('movie-title');
+  const movieYearEl         = document.getElementById('movie-year');
+  const movieRatingEl       = document.getElementById('movie-rating');
+  const movieDescEl         = document.getElementById('movie-description');
+
+  const playBtn             = document.getElementById('play-btn');
+  const infoBtn             = document.getElementById('info-btn');
+
+  const videoOverlay        = document.getElementById('video-player-overlay');
+  const playerVideo         = document.getElementById('player-video');
+  const videoCloseBtn       = document.getElementById('video-close-btn');
+
+  const memoryOverlay       = document.getElementById('memory-player-overlay');
+  const memoryCloseBtn      = document.getElementById('memory-close-btn');
+  const showcaseImg         = document.getElementById('showcase-img');
+  const showcaseCaption     = document.getElementById('showcase-caption');
+  const showcaseSubcaption  = document.getElementById('showcase-subcaption');
+  const memoryAudio         = document.getElementById('memory-audio');
+
+  /* ==========================================================
+     INITIALIZATION & LOGIC
+     ========================================================== */
+  function initProfileScreen() {
+    profileImg.src = CONFIG.profileImage || "https://via.placeholder.com/150";
+    profileNameLbl.textContent = CONFIG.profileName || "User";
+  }
+
+  function initMovieScreen() {
+    movieTitleEl.textContent = CONFIG.movieTitle;
+    movieYearEl.textContent  = CONFIG.movieYear;
+    movieRatingEl.textContent = CONFIG.movieRating;
+    movieDescEl.textContent = CONFIG.movieDescription;
+    heroImage.src = CONFIG.heroBackgroundImageUrl;
+    posterThumb.src = CONFIG.moviePosterUrl;
+
+    CONFIG.memories.forEach((item, index) => {
+      document.getElementById(`thumb-img-${index}`).src = item.imageUrl || "https://via.placeholder.com/300x169?text=Add+Photo";
+      document.getElementById(`thumb-title-${index}`).textContent = item.title;
+      document.getElementById(`thumb-sub-${index}`).textContent = item.subtitle;
+    });
+  }
+
+  profileCard.addEventListener('click', () => {
+    profileScreen.classList.add('hidden');
+    setTimeout(() => {
+      movieScreen.classList.remove('hidden');
+    }, 200);
+  });
+
+  playBtn.addEventListener('click', () => {
+      playerVideo.src = CONFIG.playVideoUrl;
+      videoOverlay.classList.add('active');
+      playerVideo.play().catch(e => console.warn("Auto-play restricted:", e));
+  });
+
+  videoCloseBtn.addEventListener('click', () => {
+      playerVideo.pause();
+      playerVideo.currentTime = 0;
+      videoOverlay.classList.remove('active');
+  });
+
+  function openMemory(index) {
+    const data = CONFIG.memories[index];
+    if(!data) return;
+
+    // 1. Check if it's a video
+    if (data.mediaType === "video") {
+      playerVideo.src = data.mediaUrl;
+      videoOverlay.classList.add('active');
+      playerVideo.play().catch(e => console.warn("Video autoplay restricted:", e));
+      return; 
+    }
+
+    // 2. If it's an image, load the inside high-res image (mediaUrl)
+    // If mediaUrl is missing, fallback to the thumbnail (imageUrl)
+    showcaseImg.src = data.mediaUrl || data.imageUrl || "https://via.placeholder.com/800x450?text=No+Photo";
+    showcaseCaption.textContent = data.title;
+    showcaseSubcaption.textContent = data.subtitle;
+    
+    memoryOverlay.classList.add('active');
+
+    // Play the background music track
+    if(data.audioUrl && data.audioUrl.trim() !== "") {
+      memoryAudio.src = data.audioUrl;
+      memoryAudio.play().catch(e => console.warn("Audio blocked:", e));
+    }
+  }
+
+  memoryCloseBtn.addEventListener('click', () => {
+    memoryAudio.pause();
+    memoryAudio.currentTime = 0;
+    memoryOverlay.classList.remove('active');
+  });
+
+  infoBtn.addEventListener('click', () => {
+    alert(`${CONFIG.movieTitle}\n${CONFIG.movieYear} | ${CONFIG.movieRating}\n\n${CONFIG.movieDescription}`);
+  });
+
+  initProfileScreen();
+  initMovieScreen();
+</script>
+
+</body>
+</html>
